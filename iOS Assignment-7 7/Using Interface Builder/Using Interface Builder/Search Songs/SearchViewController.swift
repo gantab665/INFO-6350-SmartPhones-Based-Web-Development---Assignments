@@ -5,6 +5,7 @@
 //
 
 import UIKit
+import CoreData
 
 class SearchViewController: UIViewController {
     @IBOutlet weak var SearchNameField: UITextField!
@@ -49,8 +50,8 @@ class SearchViewController: UIViewController {
             return
         }
         
-        let Artists = albumManager.artists.filter { $0.name == nameText }
-        guard let artist = Artists.first else {
+        
+        guard nameText != "" else {
             // handle case where artist with entered ID is not found
             let alert = UIAlertController(title: "Error", message: "Artist with this name not found", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
@@ -75,8 +76,8 @@ class SearchViewController: UIViewController {
             return
         }
         
-        let Albums = albumManager.albums.filter { $0.title == nameText }
-        guard let album = Albums.first else {
+        
+        guard nameText != "" else {
             // handle case where album with entered ID is not found
             let alert = UIAlertController(title: "Error", message: "Album with this name not found", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
@@ -100,8 +101,8 @@ class SearchViewController: UIViewController {
             return
         }
         
-        let Songs = albumManager.songs.filter { $0.title == nameText }
-        guard let song = Songs.first else {
+        
+        guard nameText != "" else {
             // handle case where album with entered ID is not found
             let alert = UIAlertController(title: "Error", message: "Song with this name not found", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
@@ -128,8 +129,8 @@ class SearchViewController: UIViewController {
             return
         }
         
-        let Genres = albumManager.genres.filter { $0.name == nameText }
-        guard let genre = Genres.first else {
+       
+        guard nameText != "" else {
             // handle case where album with entered ID is not found
             let alert = UIAlertController(title: "Error", message: "Genre with this name not found", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
@@ -146,62 +147,130 @@ class SearchViewController: UIViewController {
     
    
     func displayArtistDetails(name: String, textView: UITextView) {
-        let artists = albumManager.viewAllArtists()
-        if let artist = artists.first(where: { $0.name == name }) {
-                let postString = """
-                    ID: \(artist.id)
-                    Name: \(artist.name)
-                    
-                    """
-                textView.text = postString
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
+        do {
+            let fetchRequest: NSFetchRequest<ArtistData> = ArtistData.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+            let results = try context.fetch(fetchRequest)
+            var artistDetails = ""
+            if let artist = results.first {
+                // Artist found, display details
+                artistDetails += "Artist ID: \(artist.id)\n"
+                artistDetails += "Name: \(artist.name ?? "N/A")\n"
+                // Add other artist details as needed
+                
+                // Update UI with artist details
+                textView.text = artistDetails
             } else {
+                // Artist not found
                 textView.text = "Artist with name \(name) not found"
             }
-    }
+        } catch {
+            // Handle error
+            print("Error fetching artist: \(error)")
+            let alert = UIAlertController(title: "Error", message: "Unable to fetch artist details.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+            present(alert, animated: true, completion: nil)
+        }
+
+        }
+    
     
     func displayAlbumDetails(name:String, textView: UITextView) {
-        let albums = albumManager.viewAllAlbums()
-        if let album = albums.first(where: { $0.title == name }) {
-                let postString = """
-                    ID: \(album.album_id)
-                    Name: \(album.title)
-                    Artist ID: \(album.artist_id)
-                    Release Date: \(album.release_date)
-                    """
-                textView.text = postString
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
+        do {
+            let fetchRequest: NSFetchRequest<AlbumData> = AlbumData.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+            let results = try context.fetch(fetchRequest)
+            var albumDetails = ""
+            if let album = results.first {
+                // Artist found, display details
+                albumDetails += "Album ID: \(album.id)\n"
+                albumDetails += "Name: \(album.name ?? "N/A")\n"
+                albumDetails += "Artist ID: \(album.artist_id)\n"
+                let dateFormatter = DateFormatter()
+                dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+                if let releaseDate = album.release_date {
+                                              albumDetails += "Release Date: \(dateFormatter.string(from: releaseDate))\n"
+                                          }
+                // Add other artist details as needed
+                
+                // Update UI with artist details
+                textView.text = albumDetails
             } else {
-                textView.text = "Album with name \(name) not found"
+                // Artist not found
+                textView.text = "album with name \(name) not found"
             }
+        } catch {
+            // Handle error
+            print("Error fetching artist: \(error)")
+            let alert = UIAlertController(title: "Error", message: "Unable to fetch album details.", preferredStyle: .alert)
+            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+            present(alert, animated: true, completion: nil)
+        }
+
     }
     func displaySongDetails(name:String, textView: UITextView) {
-        let songs = albumManager.viewAllSongs()
-        if let song = songs.first(where: { $0.title == name }) {
-                let postString = """
-                    ID: \(song.song_id)
-                    Name: \(song.title)
-                    Artist ID: \(song.artist_id)
-                    Album id: \(song.album_id)
-                    Genre id: \(song.genre_id)
-                    Favourite : \(song.favourite)
-                    Duration : \(song.duration)
-                    """
-                textView.text = postString
-            } else {
-                textView.text = "Song with name \(name) not found"
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+            
+            do {
+                let fetchRequest: NSFetchRequest<SongData> = SongData.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+                let results = try context.fetch(fetchRequest)
+                var songDetails = ""
+                if let song = results.first {
+                    // Song found, display details
+                    songDetails += "Song ID: \(song.id)\n"
+                    songDetails += "Name: \(song.name ?? "N/A")\n"
+                    songDetails += "Artist ID: \(song.artist_id)\n"
+                    songDetails += "Album ID: \(song.album_id)\n"
+                    songDetails += "Genre ID: \(song.genre_id)\n"
+                    songDetails += "Favourite: \(song.favourite)\n"
+                    songDetails += "Duration: \(song.duration)\n"
+                    // Add other song details as needed
+                    
+                    // Update UI with song details
+                    textView.text = songDetails
+                } else {
+                    // Song not found
+                    textView.text = "Song with name \(name) not found"
+                }
+            } catch {
+                // Handle error
+                print("Error fetching song: \(error)")
+                let alert = UIAlertController(title: "Error", message: "Unable to fetch song details.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+                present(alert, animated: true, completion: nil)
             }
     }
     func displayGenreDetails(name:String, textView: UITextView) {
-        let genres = albumManager.viewAllGenres()
-        if let genre = genres.first(where: { $0.name == name }) {
-                let postString = """
-                    ID: \(genre.genre_id)
-                    Name: \(genre.name)
+        let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+            
+            do {
+                let fetchRequest: NSFetchRequest<GenreData> = GenreData.fetchRequest()
+                fetchRequest.predicate = NSPredicate(format: "name == %@", name)
+                let results = try context.fetch(fetchRequest)
+                var genreDetails = ""
+                if let genre = results.first {
+                    // Genre found, display details
+                    genreDetails += "Genre ID: \(genre.id)\n"
+                    genreDetails += "Name: \(genre.name ?? "N/A")\n"
+                    // Add other genre details as needed
                     
-                    """
-                textView.text = postString
-              
-            } else {
-                textView.text = "Genre with name \(name) not found"
+                    // Update UI with genre details
+                    textView.text = genreDetails
+                } else {
+                    // Genre not found
+                    textView.text = "Genre with name \(name) not found"
+                }
+            } catch {
+                // Handle error
+                print("Error fetching genre: \(error)")
+                let alert = UIAlertController(title: "Error", message: "Unable to fetch genre details.", preferredStyle: .alert)
+                alert.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
+                present(alert, animated: true, completion: nil)
             }
     }
     
