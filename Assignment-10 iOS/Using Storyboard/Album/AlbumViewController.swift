@@ -13,6 +13,8 @@ protocol AlbumViewControllerDelegate: AnyObject {
     func didUpdateAlbum(Album: AlbumData)
 }
 
+
+
 class AlbumViewController: UIViewController, UIImagePickerControllerDelegate & UINavigationControllerDelegate {
 
     @IBOutlet weak var AlbumIdField: UITextField!
